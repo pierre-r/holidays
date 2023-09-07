@@ -1,0 +1,18 @@
+{
+  "name": "pierre-r/holidays",
+  "type": "package",
+  "license": "MIT",
+  "description": "Permet de récupérer les fériés légaux en Belgique",
+  "homepage": "https://www.greenpig.be",
+  "authors": [
+    {
+      "name": "Pierre Greenpig",
+      "email": "pierre@greenpig.be",
+      "homepage": "https://github.com/pierre-r"
+    }
+  ],
+  "require": {
+    "php": ">=7.1",
+    "composer/installers": "~1.9"
+  }
+}
