@@ -11,6 +11,9 @@
       "homepage": "https://github.com/pierre-r"
     }
   ],
+  "autoload": {
+    "files": ["holidays.php"]
+  },
   "require": {
     "php": ">=7.1"
   }

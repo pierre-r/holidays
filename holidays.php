@@ -92,5 +92,5 @@ function is_holiday( $date_str = "", $locale = "fr", $country = "BE" ) {
 		throw new Exception( "Les jours fériés ne sont pas définis pour l'année " . $date->format( 'Y' ) . " (" . $country . ")" );
 	}
 
-	return ( array_key_exists( $date_ymd, $holidays ) ) ? $holidays[ $date_ymd ] : false;
+	return ( array_key_exists( $date_ymd, $holidays ) ) ? $holidays[ $date_ymd ] : FALSE;
 }
