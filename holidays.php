@@ -63,7 +63,7 @@ function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 	} else {
 		$response = json_decode( $response );
 		foreach ( $response as $v ) {
-			if ( $v->name !== "Easter Sunday" && $v->name !== "St. Stephen's Day" ) {
+			if ( $v->name !== "Easter Sunday" && $v->name !== "St. Stephen's Day" && $v->name !== "Day after Ascension Day" ) {
 				$holidays[ $v->date ] = get_holiday_name( $v->name, $locale );
 			}
 		}
