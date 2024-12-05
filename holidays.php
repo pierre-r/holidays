@@ -6,6 +6,10 @@ use DateTime;
 use Exception;
 
 /**
+ * Version : 1.1.0
+ */
+
+/**
  * Return the holiday name in specific locale.
  * If locale does not exist, it returns its english name
  *
@@ -28,7 +32,7 @@ function get_holiday_name( $holiday, $locale = "fr" ) {
  * @param   string  $country  ISO-2 of the country to retrieve from
  *
  * @return array list of holidays of the country and year
- * @throws \Exception
+ * @throws Exception
  */
 function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 	if ( empty( $year ) ) {
@@ -37,9 +41,16 @@ function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 
 	$holidays = [];
 
-	$curl = curl_init();
-	curl_setopt_array( $curl, [
-		CURLOPT_URL            => "https://public-holiday.p.rapidapi.com/" . $year . "/" . $country,
+	if ( ! defined( 'RAPID_API_KEY' ) ) {
+		throw new Exception( 'La clé RAPID_API_KEY doit être définie' );
+	}
+
+	$rapidApiLib  = 'public-holidays7';
+	$rapidApiHost = "{$rapidApiLib}.p.rapidapi.com";
+
+	$curl         = curl_init();
+	$curl_options = [
+		CURLOPT_URL            => "https://{$rapidApiHost}/{$year}/{$country}",
 		CURLOPT_RETURNTRANSFER => TRUE,
 		CURLOPT_FOLLOWLOCATION => TRUE,
 		CURLOPT_ENCODING       => "",
@@ -48,10 +59,11 @@ function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 		CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
 		CURLOPT_CUSTOMREQUEST  => "GET",
 		CURLOPT_HTTPHEADER     => [
-			"X-RapidAPI-Host: public-holiday.p.rapidapi.com",
-			"X-RapidAPI-Key: " . $_ENV['RAPID_API_KEY'],
+			"X-RapidAPI-Host: " . $rapidApiHost,
+			"X-RapidAPI-Key: " . RAPID_API_KEY,
 		],
-	] );
+	];
+	curl_setopt_array( $curl, $curl_options );
 
 	$response = curl_exec( $curl );
 	$err      = curl_error( $curl );
@@ -62,14 +74,15 @@ function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 		throw new Exception( "cURL Error #:" . $err );
 	} else {
 		$response = json_decode( $response );
-		foreach ( $response as $v ) {
-			if (
-				$v->name !== "Easter Sunday"
-				&& $v->name !== "St. Stephen's Day"
-				&& $v->name !== "Day after Ascension Day"
-				&& $v->name !== "Good Friday"
-			) {
-				$holidays[ $v->date ] = get_holiday_name( $v->name, $locale );
+
+		if ( ! empty( $response ) ) {
+			foreach ( $response as $v ) {
+				if ( $v->name !== "Easter Sunday"
+				     && $v->name !== "St. Stephen's Day"
+				     && $v->name !== "Day after Ascension Day"
+				     && $v->name !== "Good Friday" ) {
+					$holidays[ $v->date ] = get_holiday_name( $v->name, $locale );
+				}
 			}
 		}
 
