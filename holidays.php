@@ -6,7 +6,7 @@ use DateTime;
 use Exception;
 
 /**
- * Version : 1.1.0
+ * Version : 1.1.1
  */
 
 /**
@@ -39,55 +39,80 @@ function get_holidays( $year = "", $locale = "fr", $country = "BE" ) {
 		$year = date( 'Y' );
 	}
 
-	$holidays = [];
+	$cache_dir       = __DIR__ . '/cache/';
+	$cache_file      = "holidays_" . $year . "_" . $country . "_" . $locale . ".txt";
+	$cache_separator = " | ";
 
-	if ( ! defined( 'RAPID_API_KEY' ) ) {
-		throw new Exception( 'La clé RAPID_API_KEY doit être définie' );
+	if ( ! is_dir( $cache_dir ) ) {
+		mkdir( $cache_dir, 0755, TRUE );
 	}
 
-	$rapidApiLib  = 'public-holidays7';
-	$rapidApiHost = "{$rapidApiLib}.p.rapidapi.com";
+	$holidays = [];
 
-	$curl         = curl_init();
-	$curl_options = [
-		CURLOPT_URL            => "https://{$rapidApiHost}/{$year}/{$country}",
-		CURLOPT_RETURNTRANSFER => TRUE,
-		CURLOPT_FOLLOWLOCATION => TRUE,
-		CURLOPT_ENCODING       => "",
-		CURLOPT_MAXREDIRS      => 10,
-		CURLOPT_TIMEOUT        => 30,
-		CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-		CURLOPT_CUSTOMREQUEST  => "GET",
-		CURLOPT_HTTPHEADER     => [
-			"X-RapidAPI-Host: " . $rapidApiHost,
-			"X-RapidAPI-Key: " . RAPID_API_KEY,
-		],
-	];
-	curl_setopt_array( $curl, $curl_options );
-
-	$response = curl_exec( $curl );
-	$err      = curl_error( $curl );
-
-	curl_close( $curl );
-
-	if ( $err ) {
-		throw new Exception( "cURL Error #:" . $err );
+	if ( file_exists( $cache_dir . $cache_file ) ) {
+		$cache = file( $cache_dir . $cache_file );
+		foreach ( $cache as $row ) {
+			$row                 = array_map( 'trim', explode( $cache_separator, $row ) );
+			$holidays[ $row[0] ] = $row[1];
+		}
 	} else {
+		if ( ! defined( 'RAPID_API_KEY' ) ) {
+			throw new Exception( 'La clé RAPID_API_KEY doit être définie' );
+		}
+
+		$rapidApiLib  = 'public-holidays7';
+		$rapidApiHost = "{$rapidApiLib}.p.rapidapi.com";
+
+		$curl         = curl_init();
+		$curl_options = [
+			CURLOPT_URL            => "https://{$rapidApiHost}/{$year}/{$country}",
+			CURLOPT_RETURNTRANSFER => TRUE,
+			CURLOPT_FOLLOWLOCATION => TRUE,
+			CURLOPT_ENCODING       => "",
+			CURLOPT_MAXREDIRS      => 10,
+			CURLOPT_TIMEOUT        => 30,
+			CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+			CURLOPT_CUSTOMREQUEST  => "GET",
+			CURLOPT_HTTPHEADER     => [
+				"X-RapidAPI-Host: " . $rapidApiHost,
+				"X-RapidAPI-Key: " . RAPID_API_KEY,
+			],
+		];
+		curl_setopt_array( $curl, $curl_options );
+
+		$response = curl_exec( $curl );
+		$err      = curl_error( $curl );
+
+		curl_close( $curl );
+
+		if ( $err ) {
+			throw new Exception( "cURL Error #:" . $err );
+		}
+
 		$response = json_decode( $response );
 
-		if ( ! empty( $response ) ) {
-			foreach ( $response as $v ) {
-				if ( $v->name !== "Easter Sunday"
-				     && $v->name !== "St. Stephen's Day"
-				     && $v->name !== "Day after Ascension Day"
-				     && $v->name !== "Good Friday" ) {
-					$holidays[ $v->date ] = get_holiday_name( $v->name, $locale );
-				}
+		if ( empty( $response ) ) {
+			throw new Exception( "Aucun jour férié retourné par l'API" );
+		}
+
+		foreach ( $response as $v ) {
+			if ( $v->name !== "Easter Sunday"
+			     && $v->name !== "St. Stephen's Day"
+			     && $v->name !== "Day after Ascension Day"
+			     && $v->name !== "Good Friday" ) {
+				$holidays[ $v->date ] = get_holiday_name( $v->name, $locale );
 			}
 		}
 
-		return $holidays;
+		// Save in cache
+		$cache_content = "";
+		foreach ( $holidays as $k => $v ) {
+			$cache_content .= $k . $cache_separator . $v . PHP_EOL;
+		}
+		file_put_contents( $cache_dir . $cache_file, $cache_content );
 	}
+
+	return $holidays;
 }
 
 /**
